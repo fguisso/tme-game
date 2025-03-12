@@ -22,7 +22,6 @@ const gameCompleted = ref(false);
 const selectedElement = ref<string | null>(null);
 const isDragging = ref(false);
 const currentDraggingElement = ref<SVGElement | null>(null);
-const dragOffset = reactive({ x: 0, y: 0 });
 const svgWidth = ref(0);
 const svgHeight = ref(0);
 
@@ -68,73 +67,72 @@ const elementInfo: Record<string, ElementInfo> = {
   'asset-1': {
     id: 'asset-1',
     title: 'A1 User Session Token',
+    description: "While analyzing the application, we saw that the session token is the main mechanism for user authentication and authorization. If an attacker obtains this token, they could perform actions on behalf of the user without restriction. This is critical as it directly involves the user’s identity and could lead to unauthorized access to sensitive information. Note that the A1 is present in multiple locations. If time permits, it’s beneficial to mark all points where an asset is either at rest or in transit."
+  },
+  'asset-1-db': {
+    id: 'asset-1-db',
+    title: 'A1 User Session Token (DB)',
     description: 'While analyzing the application, we saw that the session token is the main mechanism for user authentication and authorization. If an attacker obtains this token, they could perform actions on behalf of the user without restriction. This is critical as it directly involves the user\'s identity and could lead to unauthorized access to sensitive information. Note that the A1 is present in multiple locations. If time permits, it\'s beneficial to mark all points where an asset is either at rest or in transit.'
   },
   'asset-2': {
     id: 'asset-2',
     title: 'A2 User Personal Data',
-    description: 'The mobile application processes and stores personal user data. This includes contact information, preferences, and potentially payment details. Protecting this data is essential for user privacy and regulatory compliance.'
+    description: "We identified that the application stores personal data, such as names, social security numbers, and possibly other sensitive information. These data not only need to be protected to comply with privacy laws but are also a common target for attacks. Ensuring the protection of this data is fundamental to preventing leaks that could compromise user privacy and trust."
   },
   'asset-3': {
     id: 'asset-3',
-    title: 'A3 API Authentication Keys',
-    description: 'The API service uses authentication keys to verify legitimate requests. These keys are critical for maintaining the integrity of the communication between systems and preventing unauthorized API calls.'
+    title: 'A3 Database Credentials',
+    description: "Database credentials are essential for the application to connect to the database and perform operations. If an attacker gains access to these credentials, they could directly access the database, with the potential to read, alter, or even delete data. This is a high-priority asset, as exposure of these credentials would fully compromise the integrity and confidentiality of the stored data."
   },
   'threat-1': {
     id: 'threat-1',
-    title: 'T1 Session Hijacking',
-    description: 'An attacker could potentially intercept and steal user session tokens, allowing them to impersonate legitimate users and access their accounts without authorization.'
+    title: 'T1 Sensitive Data Interception',
+    description: "This threat was identified when analyzing the data flow between the client and the server. When credentials and personal data are transmitted, there is a risk of interception, particularly if the communication is unencrypted. Interception could allow an attacker to obtain sensitive information in transit, compromising user privacy and data integrity."
   },
   'threat-2': {
     id: 'threat-2',
-    title: 'T2 Data Breach',
-    description: 'Unauthorized access to user personal data stored on the mobile device could lead to privacy violations and identity theft issues.'
+    title: 'T2 Session Token Exposure',
+    description: "The session token is essential for authentication, so any vulnerability allowing unauthorized access to it could result in session hijacking. If the token is exposed, an attacker could perform actions on the system in the user’s name. This was identified by considering the possibilities of insecure storage or improper transmission of the token through vulnerable channels."
   },
   'threat-3': {
     id: 'threat-3',
-    title: 'T3 Man-in-the-Middle Attack',
-    description: 'Attackers may position themselves between the mobile app and proxy to intercept and potentially alter communication data.'
+    title: 'T3 Service Unavailability',
+    description: "Availability is a crucial pillar of security. This threat was considered when thinking about denial of service (DoS) attacks or resource overloads that could render the system inaccessible to users. Unavailability, whether due to an intentional attack or a technical failure, directly impacts user experience and system reliability."
   },
   'threat-4': {
     id: 'threat-4',
-    title: 'T4 API Abuse',
-    description: 'Without proper rate limiting and authentication, the API could be vulnerable to abuse through excessive requests or unauthorized access attempts.'
+    title: 'T4 Credentials Exposure',
+    description: "Access credentials for databases and other critical services are highly sensitive. During analysis, we noted that poor configuration or insufficient protection of these credentials could expose them, allowing an attacker to access data directly. This threat aims to compromise system security directly by enabling further attacks."
   },
   'threat-5': {
     id: 'threat-5',
-    title: 'T5 Database Injection',
-    description: 'Malicious SQL queries could be inserted into database operations, potentially allowing attackers to access, modify, or delete sensitive data.'
+    title: 'T5 Unauthorized Access to Personal Information',
+    description: "This threat arose from analyzing who could access personal information without permission. Unauthorized access or exposure to personal data could occur due to access control failures or vulnerabilities that allow direct system exploitation. This represents a privacy breach and could lead to legal consequences and loss of user trust."
   },
   'control-1': {
     id: 'control-1',
-    title: 'C1 Secure Token Storage',
-    description: 'Implement secure token storage using native secure storage capabilities on mobile devices to prevent unauthorized token access.'
-  },
+    title: 'C1 TLS Pinning',
+    description: "To prevent man-in-the-middle (MitM) attacks, where an attacker can intercept or alter data in transit, TLS Pinning is implemented. This control ensures that the application only accepts specific and valid certificates, safeguarding the authenticity of the connection to the server."},
   'control-2': {
     id: 'control-2',
-    title: 'C2 Data Encryption',
-    description: 'Apply strong encryption algorithms to protect sensitive user data both at rest and in transit, ensuring privacy even if raw data is accessed.'
-  },
+    title: 'C2 Encryption of Sensitive Data in Transit',
+    description: "Sensitive data, such as personal information or session tokens, is at risk of interception. Encrypting data in transit ensures that any data captured through interception remains unreadable and, therefore, useless to the attacker."},
   'control-3': {
     id: 'control-3',
-    title: 'C3 Secure Session Management',
-    description: 'Implement proper session timeout, renewal mechanisms, and validation to reduce the risk of session-based attacks.'
-  },
+    title: 'C3 Secure Token Storage',
+    description: "To protect session tokens, it is essential to avoid storing them in vulnerable areas. For mobile devices, we use Keychain (iOS) and Keystore (Android), which provide secure, encrypted storage areas, making unauthorized access to tokens more difficult."},
   'control-4': {
     id: 'control-4',
-    title: 'C4 TLS/SSL Implementation',
-    description: 'Enforce TLS/SSL for all communications between the mobile app and server components to prevent eavesdropping and man-in-the-middle attacks.'
-  },
+    title: 'C4 Rate Limiting and Request Control',
+    description: "Denial of service (DoS) attacks and resource overloads are mitigated by limiting the number of requests allowed per IP or source. This control helps maintain system availability and detect anomalous access patterns."},
   'control-5': {
     id: 'control-5',
-    title: 'C5 API Authentication',
-    description: 'Use strong authentication mechanisms like OAuth 2.0 or API keys with proper validation to ensure only authorized clients can access the API.'
-  },
+    title: 'C5 Encrypted Credential Storage in Secret Management Systems',
+    description: "Database credentials are high-priority targets for attackers. Using a secret management system, like AWS Secrets Manager or HashiCorp Vault, allows for encrypted and secure storage, protecting the credentials while facilitating rotation and access monitoring."},
   'control-6': {
     id: 'control-6',
-    title: 'C6 Input Validation',
-    description: 'Implement comprehensive input validation and parameterized queries to prevent SQL injection and other input-based attacks on the database.'
-  },
+    title: 'C6 Granular Access Controls',
+    description: "To reduce the risk of unauthorized access, we implement access controls based on the principle of least privilege, ensuring that each user or process has access only to the data and operations strictly necessary. This limits the impact in case of account or function compromise."},
 };
 
 // Progress indicators
@@ -472,15 +470,33 @@ function getTouchPos(evt: MouseEvent | TouchEvent, point: DOMPoint) {
 
 // Show draggable elements based on current game mode
 function showDraggableElements(svg: SVGSVGElement) {
-  // First, reset everything
+  // First, hide everything (opacity 0)
   svg.querySelectorAll('[id^="asset-"], [id^="threat-"], [id^="control-"]').forEach(el => {
-    (el as SVGElement).style.opacity = '0.3';
+    (el as SVGElement).style.opacity = '0';
     (el as SVGElement).style.cursor = 'default';
-    (el as SVGElement).style.pointerEvents = 'none';
     (el as SVGElement).style.transform = '';
     (el as SVGElement).classList.remove('draggable-svg-element');
     (el as SVGElement).classList.remove('dragging');
   });
+  
+  // If game is completed, show all placed elements
+  if (gameCompleted.value) {
+    // Show all placed elements
+    phases.forEach(phase => {
+      const elementsOfPhase = elements[phase as keyof typeof elements];
+      elementsOfPhase.forEach(element => {
+        if (element.placed) {
+          const el = svg.querySelector(`#${element.id}`);
+          if (el) {
+            (el as SVGElement).style.opacity = '1';
+            (el as SVGElement).style.pointerEvents = 'auto';
+            (el as SVGElement).style.cursor = 'pointer';
+          }
+        }
+      });
+    });
+    return;
+  }
   
   // Show elements for current mode
   let elementsToShow: NodeListOf<Element>;
@@ -503,7 +519,7 @@ function showDraggableElements(svg: SVGSVGElement) {
     const id = el.getAttribute('id') || '';
     const element = findElementById(id);
     
-    // Enable pointer events and visibility for all elements
+    // Enable pointer events and visibility for all elements in this phase
     (el as SVGElement).style.pointerEvents = 'auto';
     
     // If element is already placed, show it fully
@@ -515,6 +531,30 @@ function showDraggableElements(svg: SVGSVGElement) {
       (el as SVGElement).style.opacity = '0.8';
       (el as SVGElement).style.cursor = 'grab';
       (el as SVGElement).classList.add('draggable-svg-element');
+    }
+  });
+  
+  // Show only correctly placed elements from other phases (not draggable)
+  phases.forEach(phase => {
+    if (phase !== gameMode.value) {
+      const elementsOfPhase = elements[phase as keyof typeof elements];
+      elementsOfPhase.forEach(element => {
+        if (element.placed) {
+          const el = svg.querySelector(`#${element.id}`);
+          if (el) {
+            (el as SVGElement).style.opacity = '0.6'; // Slightly dimmed
+            (el as SVGElement).style.pointerEvents = 'auto';
+            (el as SVGElement).style.cursor = 'pointer';
+          }
+        } else {
+          // Ensure unplaced elements from other phases are completely hidden
+          const el = svg.querySelector(`#${element.id}`);
+          if (el) {
+            (el as SVGElement).style.opacity = '0';
+            (el as SVGElement).style.pointerEvents = 'none';
+          }
+        }
+      });
     }
   });
 }
@@ -636,7 +676,7 @@ function positionElementsInColumn(svg: SVGSVGElement) {
   
   // Use fixed spacing and positioning
   const spacing = 70;
-  const centerX = stagingArea.x + (stagingArea.width / 2);
+  const centerX = stagingArea.x + (stagingArea.width / 3);
   
   // Position each element in the column
   unplacedElements.forEach((el, index) => {
@@ -646,9 +686,15 @@ function positionElementsInColumn(svg: SVGSVGElement) {
     // Use the positions we already have in originalPositions
     const originalPos = originalPositions.get(id);
     if (!originalPos) return;
-    
+    let yPos;
     // Calculate the y position in the column
-    const yPos = stagingArea.y + 60 + (index * spacing);
+    if (el.getAttribute('id').startsWith('asset')) {
+      yPos = stagingArea.y + 100 + (index * spacing);
+    } else if (el.getAttribute('id').startsWith('control-2')) {
+      yPos = stagingArea.y + 80 + (index - 1 * spacing);
+    } else {
+      yPos = stagingArea.y + 100 + ((index - 2) * spacing);
+    }
     
     // Calculate the translation from original to new position
     // We need to convert screen coordinates to SVG coordinates
@@ -661,7 +707,7 @@ function positionElementsInColumn(svg: SVGSVGElement) {
     
     // Get original position in SVG coordinates
     const svgOrigX = originalPos.x * scaleX;
-    const svgOrigY = originalPos.y * scaleY;
+    const svgOrigY = (originalPos.y + 10) * scaleY;
     
     // Calculate how much to move from the original position
     const translateX = (centerX - svgOrigX);
@@ -768,20 +814,45 @@ function checkGameCompletion() {
   
   if (allPlaced) {
     // Mark the current phase as completed
-    phaseStatus[gameMode.value].completed = true;
+    phaseStatus[gameMode.value as keyof typeof phaseStatus].completed = true;
     
     // Unlock the next phase if available
     const currentPhaseIndex = phases.indexOf(gameMode.value);
     if (currentPhaseIndex < phases.length - 1) {
       const nextPhase = phases[currentPhaseIndex + 1];
-      phaseStatus[nextPhase].available = true;
+      phaseStatus[nextPhase as keyof typeof phaseStatus].available = true;
       
+      // Show completion message
       currentStatus.value = `Congratulations! You've completed the ${gameMode.value} phase! The ${nextPhase} phase is now unlocked.`;
+      
+      // Switch to next phase automatically after a short delay
+      setTimeout(() => {
+        gameMode.value = nextPhase;
+        
+        // Update the SVG after changing phase
+        if (svgContainer.value) {
+          const svg = svgContainer.value.querySelector('svg');
+          if (svg) {
+            showDraggableElements(svg);
+            positionElementsInColumn(svg);
+            
+            // Display a helpful message
+            currentStatus.value = `Starting the ${nextPhase} phase. Place the ${nextPhase} elements in the correct locations.`;
+          }
+        }
+      }, 1500); // 1.5 second delay for phase transition
     } else {
       currentStatus.value = `Congratulations! You've completed all phases of the game!`;
+      gameCompleted.value = true;
+      
+      // Update the SVG to show all placed elements
+      if (svgContainer.value) {
+        const svg = svgContainer.value.querySelector('svg');
+        if (svg) {
+          showDraggableElements(svg);
+        }
+      }
     }
-    
-    gameCompleted.value = true;
   }
 }
 
@@ -810,12 +881,57 @@ function resetGame() {
     if (svg) {
       svg.querySelectorAll('[id^="asset-"], [id^="threat-"], [id^="control-"]').forEach(el => {
         (el as SVGElement).style.transform = '';
+        (el as SVGElement).setAttribute('transform', '');
       });
       
       // Show draggable elements for current mode
       showDraggableElements(svg);
       
       // Position elements in a column
+      positionElementsInColumn(svg);
+    }
+  }
+}
+
+// Reset a specific phase
+function resetPhase(phase: 'asset' | 'threat' | 'control') {
+  // Reset status
+  currentStatus.value = `Phase ${phase} reset.`;
+  
+  // Reset placement status for the phase's elements
+  elements[phase].forEach(el => el.placed = false);
+  
+  // Reset the SVG elements
+  if (svgContainer.value) {
+    const svg = svgContainer.value.querySelector('svg');
+    if (svg) {
+      // Reset transformations for the phase's elements
+      svg.querySelectorAll(`[id^="${phase}-"]`).forEach(el => {
+        (el as SVGElement).style.transform = '';
+        (el as SVGElement).setAttribute('transform', '');
+      });
+      
+      // Update phase status if needed
+      if (phaseStatus[phase].completed) {
+        phaseStatus[phase].completed = false;
+        
+        // If this was completed and unlocked another phase, reduce score
+        if (phase === 'asset' && phaseStatus.threat.available) {
+          score.value -= elements[phase].length * 10;
+        } else if (phase === 'threat' && phaseStatus.control.available) {
+          score.value -= elements[phase].length * 10;
+        } else {
+          score.value -= elements[phase].length * 10;
+        }
+      }
+      
+      // If we're in a different mode, switch to this mode
+      if (gameMode.value !== phase) {
+        gameMode.value = phase;
+      }
+      
+      // Show draggable elements and position them
+      showDraggableElements(svg);
       positionElementsInColumn(svg);
     }
   }
@@ -848,53 +964,83 @@ function resetGame() {
           <div class="sidebar-section mt-3">
             <h3 class="text-md font-semibold">Game Phases</h3>
             <div class="flex flex-col space-y-1 mt-1">
-              <button 
-                @click="setGameMode('asset')" 
-                :class="{ 
-                  'bg-amber-500 text-white': gameMode === 'asset', 
-                  'bg-amber-100 text-amber-800': gameMode !== 'asset' && phaseStatus.asset.available,
-                  'bg-gray-100 text-gray-400': !phaseStatus.asset.available,
-                  'border-green-500 border': phaseStatus.asset.completed
-                }" 
-                class="px-2 py-1 rounded flex justify-between items-center text-xs"
-              >
-                <span>1. Assets</span>
-                <span v-if="phaseStatus.asset.completed" class="text-green-500">✓</span>
-                <span v-else-if="phaseStatus.asset.available" class="text-amber-500">⟶</span>
-                <span v-else class="text-gray-400">🔒</span>
-              </button>
+              <div class="flex items-center gap-1">
+                <button 
+                  @click="setGameMode('asset')" 
+                  :class="{ 
+                    'bg-amber-500 text-white': gameMode === 'asset', 
+                    'bg-amber-100 text-amber-800': gameMode !== 'asset' && phaseStatus.asset.available,
+                    'bg-gray-100 text-gray-400': !phaseStatus.asset.available,
+                    'border-green-500 border': phaseStatus.asset.completed
+                  }" 
+                  class="flex-1 px-2 py-1 rounded flex justify-between items-center text-xs"
+                >
+                  <span>1. Assets</span>
+                  <span v-if="phaseStatus.asset.completed" class="text-green-500">✓</span>
+                  <span v-else-if="phaseStatus.asset.available" class="text-amber-500">⟶</span>
+                  <span v-else class="text-gray-400">🔒</span>
+                </button>
+                <button
+                  v-if="phaseStatus.asset.available"
+                  @click="resetPhase('asset')"
+                  class="px-1.5 py-1 rounded bg-orange-100 hover:bg-orange-200 text-orange-800 text-[10px]"
+                  title="Reset Asset Phase"
+                >
+                  ↺
+                </button>
+              </div>
               
-              <button 
-                @click="setGameMode('threat')" 
-                :class="{
-                  'bg-red-500 text-white': gameMode === 'threat',
-                  'bg-red-100 text-red-800': gameMode !== 'threat' && phaseStatus.threat.available,
-                  'bg-gray-100 text-gray-400': !phaseStatus.threat.available,
-                  'border-green-500 border': phaseStatus.threat.completed
-                }" 
-                class="px-2 py-1 rounded flex justify-between items-center text-xs"
-              >
-                <span>2. Threats</span>
-                <span v-if="phaseStatus.threat.completed" class="text-green-500">✓</span>
-                <span v-else-if="phaseStatus.threat.available" class="text-red-500">⟶</span>
-                <span v-else class="text-gray-400">🔒</span>
-              </button>
+              <div class="flex items-center gap-1">
+                <button 
+                  @click="setGameMode('threat')" 
+                  :class="{
+                    'bg-red-500 text-white': gameMode === 'threat',
+                    'bg-red-100 text-red-800': gameMode !== 'threat' && phaseStatus.threat.available,
+                    'bg-gray-100 text-gray-400': !phaseStatus.threat.available,
+                    'border-green-500 border': phaseStatus.threat.completed
+                  }" 
+                  class="flex-1 px-2 py-1 rounded flex justify-between items-center text-xs"
+                >
+                  <span>2. Threats</span>
+                  <span v-if="phaseStatus.threat.completed" class="text-green-500">✓</span>
+                  <span v-else-if="phaseStatus.threat.available" class="text-red-500">⟶</span>
+                  <span v-else class="text-gray-400">🔒</span>
+                </button>
+                <button
+                  v-if="phaseStatus.threat.available"
+                  @click="resetPhase('threat')"
+                  class="px-1.5 py-1 rounded bg-red-100 hover:bg-red-200 text-red-800 text-[10px]"
+                  title="Reset Threat Phase"
+                >
+                  ↺
+                </button>
+              </div>
               
-              <button 
-                @click="setGameMode('control')" 
-                :class="{
-                  'bg-blue-500 text-white': gameMode === 'control',
-                  'bg-blue-100 text-blue-800': gameMode !== 'control' && phaseStatus.control.available,
-                  'bg-gray-100 text-gray-400': !phaseStatus.control.available,
-                  'border-green-500 border': phaseStatus.control.completed
-                }" 
-                class="px-2 py-1 rounded flex justify-between items-center text-xs"
-              >
-                <span>3. Controls</span>
-                <span v-if="phaseStatus.control.completed" class="text-green-500">✓</span>
-                <span v-else-if="phaseStatus.control.available" class="text-blue-500">⟶</span>
-                <span v-else class="text-gray-400">🔒</span>
-              </button>
+              <div class="flex items-center gap-1">
+                <button 
+                  @click="setGameMode('control')" 
+                  :class="{
+                    'bg-blue-500 text-white': gameMode === 'control',
+                    'bg-blue-100 text-blue-800': gameMode !== 'control' && phaseStatus.control.available,
+                    'bg-gray-100 text-gray-400': !phaseStatus.control.available,
+                    'border-green-500 border': phaseStatus.control.completed
+                  }" 
+                  class="flex-1 px-2 py-1 rounded flex justify-between items-center text-xs"
+                >
+                  <span>3. Controls</span>
+                  <span v-if="phaseStatus.control.completed" class="text-green-500">✓</span>
+                  <span v-else-if="phaseStatus.control.available" class="text-blue-500">⟶</span>
+                  <span v-else class="text-gray-400">🔒</span>
+                </button>
+                <button
+                  v-if="phaseStatus.control.available"
+                  @click="resetPhase('control')"
+                  class="px-1.5 py-1 rounded bg-blue-100 hover:bg-blue-200 text-blue-800 text-[10px]"
+                  title="Reset Control Phase"
+                >
+                  ↺
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -924,7 +1070,7 @@ function resetGame() {
                 @click="resetGame" 
                 class="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs"
               >
-                Reset
+                Reset Game
               </button>
             </div>
             
@@ -992,7 +1138,7 @@ function resetGame() {
 
 .sidebar {
   flex: 0 0 auto;
-  height: 30vh; /* 30% for the sidebar */
+  height: 35vh;
   width: 100%;
   border-top: 1px solid #e5e7eb;
   background-color: white;
