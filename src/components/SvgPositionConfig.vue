@@ -2,7 +2,7 @@
 import { ref, reactive, onMounted, nextTick } from 'vue';
 
 // Configuration state
-const svgPath = ref('/src/assets/simple-threat-modeling.svg');
+const svgPath = ref('./simple-threat-modeling.svg');
 const svgContent = ref('');
 const svgContainer = ref<HTMLElement | null>(null);
 const selectedElement = ref<string | null>(null);

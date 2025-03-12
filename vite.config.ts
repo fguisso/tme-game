@@ -7,4 +7,9 @@ export default defineConfig({
     vue(),
     tailwindcss(),
   ],
+  base: '/tme-game/',
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets'
+  },
 })

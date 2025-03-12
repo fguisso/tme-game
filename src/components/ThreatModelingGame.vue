@@ -8,7 +8,7 @@ export default {
 import { ref, onMounted, reactive, nextTick, computed } from 'vue';
 
 // Path to the SVG file
-const svgPath = '/src/assets/simple-threat-modeling.svg';
+const svgPath = './simple-threat-modeling.svg';
 
 // Initialize state
 const svgContent = ref('');
